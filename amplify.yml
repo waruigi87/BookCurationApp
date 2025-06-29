@@ -2,14 +2,19 @@ version: 1
 env:
   variables:
     ASPNETCORE_ENVIRONMENT: Production
+    DOTNET_CLI_TELEMETRY_OPTOUT: 1
 frontend:
   phases:
     preBuild:
       commands:
-        - echo "Installing .NET 8 SDK"
-        - curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --version 8.0.303
+        - echo "Installing .NET 9 SDK"
+        - curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --version 9.0.100
         - export PATH="$PATH:$HOME/.dotnet"
+        - export DOTNET_ROOT="$HOME/.dotnet"
         - dotnet --version
+        - echo "Target framework check"
+        - grep -r "TargetFramework" *.csproj || echo "No csproj found in root"
+        - find . -name "*.csproj" -exec grep "TargetFramework" {} \;
         - echo "Restoring NuGet packages"
         - dotnet restore
         # 環境変数からappsettings.jsonを動的生成
@@ -25,11 +30,11 @@ frontend:
         - cat wwwroot/appsettings.json
     build:
       commands:
-        - echo "Building Blazor WASM app"
+        - echo "Building Blazor WASM app with .NET 9"
         - dotnet publish -c Release -o ./publish
         - echo "Build completed"
-        - echo "Final appsettings.json in publish:"
-        - cat ./publish/wwwroot/appsettings.json
+        - echo "Checking publish output"
+        - ls -la ./publish/wwwroot/
   artifacts:
     baseDirectory: ./publish/wwwroot
     files:
