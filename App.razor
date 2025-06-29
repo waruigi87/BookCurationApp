@@ -1,0 +1,33 @@
+﻿@using BookCurationApp_V1.Layout
+
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <div class="page">
+            <main>
+                <RouteView RouteData="@routeData" />
+            </main>
+        </div>
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <div class="page">
+            <main>
+                <p role="alert">Sorry, there's nothing at this address.</p>
+            </main>
+        </div>
+    </NotFound>
+</Router>
+
+<style>
+    .page {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    main {
+        flex: 1;
+    }
+</style>

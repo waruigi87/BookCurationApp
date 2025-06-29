@@ -1,0 +1,64 @@
+@using BookCurationApp_V1.Models
+@inject Microsoft.JSInterop.IJSRuntime JSRuntime
+
+<div class="book-card" @onclick="HandleCardClick">
+    <div class="book-thumbnail">
+        <img src="@Book.DisplayThumbnail" alt="@Book.Title" loading="lazy" />
+        @if (!string.IsNullOrEmpty(Book.AgeRange))
+        {
+            <div class="age-badge" style="background-color: @Book.DifficultyColor">
+                @Book.DisplayAgeRange
+            </div>
+        }
+    </div>
+    <div class="book-info">
+        <h3 class="book-title">@Book.Title</h3>
+        <p class="book-authors">@Book.AuthorsText</p>
+
+        @if (Book.PageCount > 0)
+        {
+            <p class="book-pages">📖 @Book.PageCount ページ</p>
+        }
+
+        <div class="action-buttons">
+            <button class="favorite-btn" @onclick="HandleFavoriteClick" @onclick:stopPropagation="true">
+                ⭐ お気に入り
+            </button>
+
+            @if (Book.PurchaseLinks.Any())
+            {
+                <div class="purchase-links">
+                    @foreach (var link in Book.PurchaseLinks)
+                    {
+                        <a href="@link.Url" target="_blank" class="purchase-link" @onclick:stopPropagation="true">
+                            🛒 @link.Name
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public Book Book { get; set; } = new();
+    [Parameter] public EventCallback<string> OnFavoriteClick { get; set; }
+
+    private async Task HandleFavoriteClick()
+    {
+        await OnFavoriteClick.InvokeAsync(Book.Isbn);
+    }
+
+    private void HandleCardClick()
+    {
+        if (Book.PurchaseLinks.Any())
+        {
+            // 最初の購入リンクに遷移
+            var url = Book.PurchaseLinks[0].Url;
+            // JavaScriptで新しいタブで開く
+            Console.WriteLine($"Opening URL: {url}");
+            // Blazor WASM では window.open を使用
+            JSRuntime.InvokeVoidAsync("open", url, "_blank");
+        }
+    }
+}

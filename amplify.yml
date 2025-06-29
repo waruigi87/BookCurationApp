@@ -1,0 +1,39 @@
+version: 1
+env:
+  variables:
+    ASPNETCORE_ENVIRONMENT: Production
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - echo "Installing .NET 8 SDK"
+        - curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --version 8.0.303
+        - export PATH="$PATH:$HOME/.dotnet"
+        - dotnet --version
+        - echo "Restoring NuGet packages"
+        - dotnet restore
+        # 環境変数からappsettings.jsonを動的生成
+        - |
+          cat > wwwroot/appsettings.json << EOF
+          {
+            "ApiSettings": {
+              "BaseUrl": "${API_BASE_URL:-https://v3wbyayobb.execute-api.ap-northeast-1.amazonaws.com/default/api/v1}"
+            }
+          }
+          EOF
+        - echo "Generated appsettings.json:"
+        - cat wwwroot/appsettings.json
+    build:
+      commands:
+        - echo "Building Blazor WASM app"
+        - dotnet publish -c Release -o ./publish
+        - echo "Build completed"
+        - echo "Final appsettings.json in publish:"
+        - cat ./publish/wwwroot/appsettings.json
+  artifacts:
+    baseDirectory: ./publish/wwwroot
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - ~/.nuget/packages/**/*

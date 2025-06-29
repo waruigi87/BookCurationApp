@@ -1,0 +1,158 @@
+﻿@page "/search"
+@using BookCurationApp_V1.Models
+@using BookCurationApp_V1.Services
+@using BookCurationApp_V1.Components
+@inject BookService BookService
+
+<PageTitle>洋書検索 - 子ども向け図書館</PageTitle>
+
+<div class="search-container">
+    <div class="search-header">
+        <h1>📚 子ども向け洋書を探そう！</h1>
+        <p>お気に入りの本を見つけて、英語の冒険を始めよう</p>
+    </div>
+
+    <div class="search-form">
+        <div class="search-input-group">
+            <input type="text" @bind="searchQuery" @onkeypress="HandleKeyPress" placeholder="恐竜、魔法、冒険... 何でも検索してみて！"
+                class="search-input" />
+            <button class="search-btn" @onclick="SearchBooks" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span>🔍 探しています...</span>
+                }
+                else
+                {
+                    <span>🔍 検索</span>
+                }
+            </button>
+            <!-- ⚠️ 追加：クリアボタン -->
+            @if (!string.IsNullOrEmpty(searchQuery) && !isLoading)
+            {
+                <button class="clear-btn" @onclick="ClearSearch" title="検索をクリア">
+                    ✕
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (searchResults.Any())
+    {
+        <div class="results-section">
+            <h2>見つかった本たち (全@searchResults.Count冊)</h2>
+            <div class="books-grid-container">
+                <div class="books-grid">
+                    @foreach (var book in searchResults)
+                    {
+                        <BookCard Book="book" OnFavoriteClick="HandleFavoriteClick" />
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    else if (hasSearched && !isLoading)
+    {
+        <div class="no-results">
+            <p>🤔 「@lastSearchQuery」では本が見つかりませんでした</p>
+            <p>違うキーワードで試してみてください！</p>
+            <!-- ⚠️ 追加：新しい検索を促すボタン -->
+            <button class="new-search-btn" @onclick="StartNewSearch">
+                🔍 新しい検索を始める
+            </button>
+        </div>
+    }
+
+    @if (!hasSearched)
+    {
+        <div class="welcome-section">
+            <h2>🌟 おすすめの検索キーワード</h2>
+            <div class="keyword-chips">
+                <button class="keyword-chip" @onclick="@(() => SearchWithKeyword("dinosaur"))">🦕 恐竜</button>
+                <button class="keyword-chip" @onclick="@(() => SearchWithKeyword("magic"))">✨ 魔法</button>
+                <button class="keyword-chip" @onclick="@(() => SearchWithKeyword("adventure"))">🗺️ 冒険</button>
+                <button class="keyword-chip" @onclick="@(() => SearchWithKeyword("princess"))">👑 プリンセス</button>
+                <button class="keyword-chip" @onclick="@(() => SearchWithKeyword("animals"))">🐾 動物</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private string searchQuery = string.Empty;
+    private List<Book> searchResults = new();
+    private bool isLoading = false;
+    private bool hasSearched = false;
+    private string lastSearchQuery = string.Empty;
+
+    private async Task SearchBooks()
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery))
+            return;
+
+        // 検索状態を確実にリセット
+        isLoading = true;
+        searchResults.Clear(); // 前の結果をクリア
+        hasSearched = false; // 一時的にfalseにして「見つかりません」を非表示
+        lastSearchQuery = searchQuery;
+        StateHasChanged();
+
+        try
+        {
+            var results = await BookService.SearchBooksAsync(searchQuery);
+            searchResults = results ?? new List<Book>();
+            hasSearched = true; // 検索完了後にtrueに設定
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Search error: {ex.Message}");
+            searchResults = new List<Book>();
+            hasSearched = true;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SearchWithKeyword(string keyword)
+    {
+        searchQuery = keyword;
+        await SearchBooks();
+    }
+
+    // ⚠️ 追加：検索クリア機能
+    private void ClearSearch()
+    {
+        searchQuery = string.Empty;
+        searchResults.Clear();
+        hasSearched = false;
+        lastSearchQuery = string.Empty;
+        StateHasChanged();
+    }
+
+    // ⚠️ 追加：新しい検索を開始
+    private void StartNewSearch()
+    {
+        ClearSearch();
+        // フォーカスを検索ボックスに移動（オプション）
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchBooks();
+        }
+        // ⚠️ 追加：Escapeキーでクリア
+        else if (e.Key == "Escape")
+        {
+            ClearSearch();
+        }
+    }
+
+    private async Task HandleFavoriteClick(string isbn)
+    {
+        await BookService.AddToFavoritesAsync(isbn);
+    }
+}

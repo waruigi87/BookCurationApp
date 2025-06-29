@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="../buildMultiTargeting/BookCurationApp_V1.props" />
+</Project>
